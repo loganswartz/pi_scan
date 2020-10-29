@@ -115,6 +115,7 @@ class Listener(object):
             print(f"Running with:")
             for key, value in self.config.items():
                 print(f"  {key.capitalize()}: {value}")
+            print(f"  Callback: {self.callback.__name__}")
             print()
 
         patch_event_device()
