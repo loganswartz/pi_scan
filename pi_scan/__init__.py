@@ -2,7 +2,7 @@
 
 # Imports {{{
 import logging
-from pi_scan.listen import Listener
+from .listen import Listener
 
 # }}}
 

@@ -20,7 +20,7 @@ import ioctl_opt
 import keyboard
 
 # local modules
-from pi_scan.patches import get_typed_strings_f, patch_event_device
+from .patches import get_typed_strings_f, patch_event_device
 
 # }}}
 
