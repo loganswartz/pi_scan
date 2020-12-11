@@ -7,6 +7,7 @@ import fcntl
 import json
 from json.decoder import JSONDecodeError
 import logging
+import os
 from os import PathLike, geteuid
 import threading
 import sys
@@ -77,6 +78,19 @@ def root():
     return geteuid() == 0
 
 
+def restart():
+    """
+    Restart the entire Python process.
+
+    This completely restarts the process with all the same arguments and
+    environment variables of the current process.
+
+    Second argument of exec() is given extra quotes in case it's called on
+    Windows and has a space in the name.
+    """
+    os.execl(sys.executable, f'"{sys.executable}"', *sys.argv)
+
+
 class Listener(object):
     def __init__(
         self,
@@ -105,7 +119,7 @@ class Listener(object):
             data = json.load(open(self._config))
         return frozendict(data)
 
-    def listen(self) -> NoReturn:
+    def listen(self, autorestart: bool = True) -> NoReturn:
         if not root():
             print(f"You must be root to use Listener.listen()!")
             sys.exit(1)
@@ -142,6 +156,14 @@ class Listener(object):
                 keyboard._os_keyboard.device.remove_device(kbd_dev)
 
         self.report_devs(devs)
+        if not devs:
+            log.error(
+                f"No scanners found. {'Restarting....' if autorestart else 'Exiting....'}"
+            )
+            if autorestart:
+                restart()
+            else:
+                sys.exit(1)
 
         accumulator = EventAccumulator(callback=self.callback)
         if self.config.get("separators") is not None:
@@ -149,16 +171,13 @@ class Listener(object):
 
         keyboard._os_keyboard.device.start()
         keyboard.hook(accumulator.accumulate)
-        keyboard.wait()
+        while True:
+            keyboard.wait()
 
     def report_devs(self, devs):
-        if not devs:
-            log.error("No scanners found. Exiting...")
-            sys.exit(1)
-        else:
+        if devs:
             for dev in devs:
                 addr = f"{dev.info.vendor:x}:{dev.info.product:x}"
                 print(f"\nFound {dev.name} ({addr}), grabbing for exclusive use...")
-
-        print(f"Scanner{'s' if len(devs) > 1 else ''} initialized. Listening....")
-        print(f"{'=' * get_terminal_size().columns}\n")
+            print(f"Scanner{'s' if len(devs) > 1 else ''} initialized. Listening....")
+            print(f"{'=' * get_terminal_size().columns}\n")
