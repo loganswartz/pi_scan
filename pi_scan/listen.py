@@ -7,8 +7,7 @@ import fcntl
 import json
 from json.decoder import JSONDecodeError
 import logging
-import os
-from os import PathLike, geteuid
+from os import PathLike
 import threading
 import sys
 from shutil import get_terminal_size
@@ -22,6 +21,7 @@ import keyboard
 
 # local modules
 from .patches import get_typed_strings_f, patch_event_device
+from .utils import restart, root
 
 # }}}
 
@@ -74,23 +74,6 @@ def grab(device_file):
     fcntl.ioctl(device_file, EVIOCGRAB(), True)
 
 
-def root():
-    return geteuid() == 0
-
-
-def restart():
-    """
-    Restart the entire Python process.
-
-    This completely restarts the process with all the same arguments and
-    environment variables of the current process.
-
-    Second argument of exec() is given extra quotes in case it's called on
-    Windows and has a space in the name.
-    """
-    os.execl(sys.executable, f'"{sys.executable}"', *sys.argv)
-
-
 class Listener(object):
     def __init__(
         self,
@@ -119,7 +102,7 @@ class Listener(object):
             data = json.load(open(self._config))
         return frozendict(data)
 
-    def listen(self, autorestart: bool = True) -> NoReturn:
+    def listen(self, autorestart: bool = True, restart_int: int = 5) -> NoReturn:
         if not root():
             print(f"You must be root to use Listener.listen()!")
             sys.exit(1)
@@ -161,6 +144,9 @@ class Listener(object):
                 f"No scanners found. {'Restarting....' if autorestart else 'Exiting....'}"
             )
             if autorestart:
+                from time import sleep
+
+                sleep(restart_int)
                 restart()
             else:
                 sys.exit(1)

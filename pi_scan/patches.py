@@ -10,6 +10,7 @@ from queue import Queue
 import keyboard
 
 # local modules
+from .utils import restart
 
 # }}}
 
@@ -108,8 +109,12 @@ class AggregatedEventDevice(object):
         self.thread_map = {}
 
         def start_reading(device):
-            while True:
-                self.event_queue.put(device.read_event())
+            try:
+                while True:
+                    self.event_queue.put(device.read_event())
+            except OSError:
+                print("Device unplugged, restarting....")
+                restart()
 
         for device in self.devices:
             thread = Thread(target=start_reading, args=[device])
