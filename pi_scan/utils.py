@@ -40,4 +40,4 @@ def restart():
 
         return arguments
 
-    os.execl(sys.executable, *get_interpreter_call_signature(), *sys.argv)
+    os.execl(sys.executable, *get_interpreter_call_signature(), *sys.argv[1:])
